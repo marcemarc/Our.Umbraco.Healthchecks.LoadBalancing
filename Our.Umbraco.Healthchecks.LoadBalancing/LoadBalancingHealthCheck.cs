@@ -60,7 +60,7 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
                 statusesToCheck.Add(DisplayCurrentServerRole());
                 statusesToCheck.Add(DisplayCurrentServerIdentity());
 
-                // only run number of servers if database server registar is current
+                // only run number of servers if database server registrar is current
                 var currentServerRegistrar = (IServerRegistrar2)ServerRegistrarResolver.Current.Registrar;
                 if (currentServerRegistrar is DatabaseServerRegistrar)
                 {
