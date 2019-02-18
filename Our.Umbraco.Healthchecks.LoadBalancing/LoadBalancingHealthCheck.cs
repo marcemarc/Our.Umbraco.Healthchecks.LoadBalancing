@@ -516,7 +516,7 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
             var currentServerIdentity = serverRegistrationService.CurrentServerIdentity;
                 resultMessage = $"Identity: {currentServerIdentity} | Role: {currentServerRole}";
             }
-            // If is Azure Web App so can add additional Azure info
+            // If running as an Azure WebApp add additional info
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME")))
             {
                 resultMessage += $" | Azure WebApp name: {Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME")} | WebApp Hostname: {Environment.GetEnvironmentVariable("WEBSITE_HOSTNAME")} | Instance id: {Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID")}";
