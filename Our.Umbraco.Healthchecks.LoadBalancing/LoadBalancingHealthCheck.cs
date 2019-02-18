@@ -92,15 +92,29 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
             // can we fix anything
             var actions = new List<HealthCheckAction>();
             var configuredUmbracoApplicationUrl = UmbracoConfig.For.UmbracoSettings().WebRouting.UmbracoApplicationUrl;
-            if (!configuredUmbracoApplicationUrl.IsNullOrWhiteSpace())
+            var currentServerRegistrar = (IServerRegistrar2)ServerRegistrarResolver.Current.Registrar;
+
+            var isSetByServerRegistrar =
+                !string.IsNullOrEmpty(currentServerRegistrar.GetCurrentServerUmbracoApplicationUrl());
+            var isSetByConfig = !string.IsNullOrEmpty(configuredUmbracoApplicationUrl);
+
+            if (isSetByConfig && isSetByServerRegistrar)
             {
-                resultMessage = "umbracoApplicationUrl has been configured in umbracoSettings.config routing element";
+                resultMessage =
+                    $"UmbracoApplicationUrl is being set by both config in umbracoSettings.config and by a ServerRegistrar named {currentServerRegistrar.GetType().Name}, config gets preference!";
+                    resultType = StatusResultType.Error;
+            }
+            else if (isSetByConfig)
+            {
+                resultMessage = "UmbracoApplicationUrl has been configured in umbracoSettings.config routing element";
+            }
+            else if (isSetByServerRegistrar)
+            {
+                resultMessage = $"UmbracoApplicationUrl is being set by by a ServerRegistrar named {currentServerRegistrar.GetType().Name}";
             }
             else
             {
-                // it may have been set by a custom registraar or Umbraco has guessed based on the first request
-                // not sure yet how to tell the difference here
-                resultMessage = "umbracoApplicationUrl has been set during Application Start up based on the Url of the first request made to Umbraco or by a custom Registrar implementation";
+                resultMessage = "UmbracoApplicationUrl has been set during Application Start up based on the Url of the first request made to Umbraco";
             }
             return
             new HealthCheckStatus(resultMessage)
