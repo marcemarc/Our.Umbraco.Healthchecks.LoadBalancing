@@ -1,3 +1,6 @@
+#VS 2015 hidden folder
+.vs/*
+
 [Pp]ackages/
 [Tt][Ee][Mm][Pp]/
 [Mm]edia/
