@@ -501,17 +501,26 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
         }
         private HealthCheckStatus DisplayCurrentServerIdentity()
         {
-            string resultMessage = "";
+            string resultMessage = $"Identity: {Environment.MachineName}";
             StatusResultType resultType = StatusResultType.Info;
             // can we fix anything
             var actions = new List<HealthCheckAction>();
-            //finally for Slave and Master configurations we can look up in the umbracoServer table to see what other servers are in play...
 
+            // If default DatabaseServerRegistrar is in use, get server identity from ServerRegistrationService
+            var currentServerRegistrar = (IServerRegistrar2)ServerRegistrarResolver.Current.Registrar;
+            if (currentServerRegistrar is DatabaseServerRegistrar)
+            {
             var serverRegistrationService = ApplicationContext.Current.Services.ServerRegistrationService;
             // wonder if it's useful to see what the ServerRegistrationService returns for role
             var currentServerRole = serverRegistrationService.GetCurrentServerRole();
             var currentServerIdentity = serverRegistrationService.CurrentServerIdentity;
-            resultMessage = "Identity: " + currentServerIdentity + " | Role: " + currentServerRole;
+                resultMessage = $"Identity: {currentServerIdentity} | Role: {currentServerRole}";
+            }
+            // If running as an Azure WebApp add additional info
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME")))
+            {
+                resultMessage += $" | Azure WebApp name: {Environment.GetEnvironmentVariable("WEBSITE_SITE_NAME")} | WebApp Hostname: {Environment.GetEnvironmentVariable("WEBSITE_HOSTNAME")} | Instance id: {Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID")}";
+            }
 
             return
                new HealthCheckStatus(resultMessage)
