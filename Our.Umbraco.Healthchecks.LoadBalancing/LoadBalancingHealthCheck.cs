@@ -62,7 +62,13 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
                 statusesToCheck.Add(CheckElectionDisabledForSingleServer());
                 statusesToCheck.Add(DisplayCurrentServerRole());
                 statusesToCheck.Add(DisplayCurrentServerIdentity());
+
+                // only run number of servers if database server registrar is current
+                var currentServerRegistrar = (IServerRegistrar2)ServerRegistrarResolver.Current.Registrar;
+                if (currentServerRegistrar is DatabaseServerRegistrar)
+                {
                 statusesToCheck.Add(DisplayFlexibleLoadBalancingServers());
+            }
             }
             return statusesToCheck;
         }
