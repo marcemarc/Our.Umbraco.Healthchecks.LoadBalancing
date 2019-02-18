@@ -5,6 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Semver;
+using umbraco;
 using Umbraco.Core;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Services;
@@ -36,6 +38,7 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
 
             statusesToCheck.Add(DisplayUmbracoApplicationUrl());
             statusesToCheck.Add(DisplayHowUmbracoApplicationUrlSet());
+            statusesToCheck.Add(DisplayUmbracoLocalTempStorage());
 
             // only run these checks if the umbracoApplicationUrl has been manually set
             if (!UmbracoConfig.For.UmbracoSettings().WebRouting.UmbracoApplicationUrl.IsNullOrWhiteSpace())
@@ -62,6 +65,70 @@ namespace Our.Umbraco.Healthchecks.LoadBalancing
                 statusesToCheck.Add(DisplayFlexibleLoadBalancingServers());
             }
             return statusesToCheck;
+        }
+        /// <summary>
+        /// check to see if the Umbraco local temp location has been set by an app setting
+        /// </summary>
+        /// <returns></returns>
+        private HealthCheckStatus DisplayUmbracoLocalTempStorage()
+        {
+            var resultMessage = "Umbraco local temporary location hasn't been set by an app setting, default \"~/App_Data/ location is in use";
+            StatusResultType resultType = StatusResultType.Info;
+            // can we fix anything
+            var actions = new List<HealthCheckAction>();
+            var currentUmbracoVersion = UmbracoVersion.GetSemanticVersion();
+
+            var tempSettings = new List<string>();
+
+            if (ConfigurationManager.AppSettings.ContainsKey("umbracoLocalTempStorage"))
+            {
+                tempSettings.Add("umbracoLocalTempStorage");
+                var umbracoLocalTempStorage = ConfigurationManager.AppSettings["umbracoLocalTempStorage"];
+                resultMessage =
+                    $"Umbraco local temporary location is set to {umbracoLocalTempStorage} using the umbracoLocalTempStorage app setting";
+            }
+
+            if (ConfigurationManager.AppSettings.ContainsKey("umbracoContentXMLStorage"))
+            {
+                tempSettings.Add("umbracoContentXMLStorage");
+                var umbracoContentXMLStorage = ConfigurationManager.AppSettings["umbracoContentXMLStorage"];
+                resultMessage = $"Umbraco local temporary location is set to {umbracoContentXMLStorage} using the umbracoContentXMLStorage app setting";
+                if (currentUmbracoVersion >= new SemVersion(7, 7, 3))
+                {
+                    resultMessage = $"{resultMessage}, it is recommended that you change to using umbracoLocalTempStorage";
+                    resultType = StatusResultType.Warning;
+                }
+            }
+            if (ConfigurationManager.AppSettings.ContainsKey("umbracoContentXMLUseLocalTemp"))
+            {
+                tempSettings.Add("umbracoContentXMLUseLocalTemp");
+                var umbracoContentXMLUseLocalTemp = ConfigurationManager.AppSettings["umbracoContentXMLUseLocalTemp"];
+                resultMessage = $"Umbraco local temporary location is set to {umbracoContentXMLUseLocalTemp} using the umbracoContentXMLStorage app setting";
+                if (currentUmbracoVersion >= new SemVersion(7, 7, 3))
+                {
+                    resultMessage = $"{resultMessage}, it is recommended that you change to using umbracoLocalTempStorage";
+                    resultType = StatusResultType.Warning;
+                }else if (currentUmbracoVersion >= new SemVersion(7, 6))
+                {
+                    resultMessage = $"{resultMessage}, it is recommended that you change to using umbracoContentXMLStorage";
+                    resultType = StatusResultType.Warning;
+                }
+            }
+
+            // check for multiple temp location settings, this will override all above checks
+            if (tempSettings.Count > 1)
+            {
+                resultMessage = $"Multiple Umbraco local temporary settings are in use, there should be only one! {string.Join(", ", tempSettings.ToArray())} found to be in use";
+                resultType = StatusResultType.Error;
+            }
+
+            return
+                new HealthCheckStatus(resultMessage)
+                {
+                    ResultType = resultType,
+                    Actions = actions
+                };
+
         }
 
         ///Just display the UmbracoApplicationUrl from the ApplicationContext, eg what Umbraco has chosen/or has been configured.
